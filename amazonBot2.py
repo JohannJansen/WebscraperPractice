@@ -14,9 +14,9 @@ HEADERS = ({'User-Agent':
 BASE_URL = "http://amazon.de/dp/"
 
 #!!!These fields need to be filled in with the login data for a gmail acc and a recieving email!!!
-email_sender = 'yoshi081200@gmail.com'
-email_pw = 'epdeayzljqwgjwfr'
-email_reciever = 'jj00@web.de'
+email_sender = ''
+email_pw = ''
+email_reciever = ''
 
 #Reads the given Data from the products.csv and adds a condition met column in the Dataframe
 def setup_csv_data():
