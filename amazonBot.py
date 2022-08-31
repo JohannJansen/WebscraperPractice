@@ -78,4 +78,3 @@ while True:
     csv_data = product_availability_check(csv_data)
     csv_data = availability_notify(csv_data)
     sleep(30)
-
