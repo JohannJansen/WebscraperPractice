@@ -69,16 +69,22 @@ def manageProductdata(Data,updateflag):
     for items in soup.find_all("li"):
         itemname = items.find(id=re.compile("itemName.*"))
         used_and_new = items.find(id=re.compile("used-and-new.*"))
-        itemlink = "https://www.amazon.de" + soup.find(id=re.compile("itemName")).get("href")
     
         if itemname is not None:
             number_used_and_new = int(re.sub('[^0-9]','',used_and_new.text)) if used_and_new is not None else 0
             text_itemname = itemname.text.strip()
+            itemlink = "https://www.amazon.de" + soup.find("a",title=text_itemname).get("href")
+            if updateflag:
+                if text_itemname != Data[currentIndex][0] or itemlink != Data[currentIndex][2]:
+                    print(text_itemname + " " + itemlink)
+                    print(Data[currentIndex][0] + " " + Data[currentIndex][2])
+
             if updateflag:
                 if number_used_and_new is Data[currentIndex][1]:
                     currentIndex+=1
                 elif number_used_and_new < Data[currentIndex][1]:
-                    Data[currentIndex] = (text_itemname,number_used_and_new,itemlink)
+                    if text_itemname == Data[currentIndex][0] or itemlink == Data[currentIndex][2]:
+                        Data[currentIndex] = (text_itemname,number_used_and_new,itemlink)
                     currentIndex+=1
                 elif number_used_and_new > Data[currentIndex][1]:
                     changeditems.append(currentIndex)
@@ -86,7 +92,7 @@ def manageProductdata(Data,updateflag):
                     currentIndex+=1
             else:
                 Data.append((text_itemname,number_used_and_new,itemlink))
-    print("no changes to the previous List" + datetime.now().strftime("%m/%d/%Y, %H:%M:%S"))
+    print("no changes to the previous List. Time: " + datetime.now().strftime("%m/%d/%Y, %H:%M:%S"))
     notify(changeditems)
 
 def notify(changeditems):
