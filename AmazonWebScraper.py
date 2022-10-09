@@ -14,9 +14,9 @@ from datetime import datetime
 ProductData = []
 
 #!!!These fields need to be filled in with the login data for a gmail acc and a recieving email!!!
-email_sender = 'yoshi081200@gmail.com'
-email_pw = 'gyzjazmesxwrrxyq'
-email_reciever = 'jj00@web.de'
+email_sender = ''
+email_pw = ''
+email_reciever = ''
 
 HEADERS = ({'User-Agent':
             'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36',
