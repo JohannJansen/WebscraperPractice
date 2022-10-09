@@ -10,6 +10,7 @@ import ssl
 import smtplib
 from email.message import EmailMessage
 from datetime import datetime
+import random
 
 ProductData = []
 
@@ -18,9 +19,17 @@ email_sender = ''
 email_pw = ''
 email_reciever = ''
 
-HEADERS = ({'User-Agent':
-            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36',
-            'Accept-Language': 'en-US, en;q=0.5'})
+user_agents = [
+  "Mozilla/5.0 (Windows NT 10.0; rv:91.0) Gecko/20100101 Firefox/91.0",
+  "Mozilla/5.0 (Windows NT 10.0; rv:78.0) Gecko/20100101 Firefox/78.0",
+  "Mozilla/5.0 (X11; Linux x86_64; rv:95.0) Gecko/20100101 Firefox/95.0"
+  ]
+
+random_user_agent = random.choice(user_agents)
+
+HEADERS = ({
+    'User-Agent': random_user_agent
+    })
 BASE_URL = "https://www.amazon.de/hz/wishlist/ls/7J62CKP25KAM"
 ITEM_URL = "" #searched for automatically
 
@@ -37,19 +46,23 @@ def manageProductdata(Data,updateflag):
 
     page = requests.get(ITEM_URL,headers=HEADERS)
     soup = BeautifulSoup(page.content, features="html.parser")
-    pageinationToken = "https://www.amazon.de" + json.loads(soup.find("script").string)['showMoreUrl']
+    initialToken = json.loads(soup.find("script",string=re.compile("showMoreUrl")).string)['showMoreUrl']
+    if initialToken is None:
+            print("Unable to read Token. The results of this check dont include any products")
+            return
+    pageinationToken = "https://www.amazon.de" + initialToken
     currentIndex = 0
 
     while(pageinationToken != "https://www.amazon.de" and "paginationToken=&itemsLayout" not in pageinationToken):
         subsequentPage = requests.get(pageinationToken,headers=HEADERS)
         subsequentSoup = BeautifulSoup(subsequentPage.content,features="html.parser")
-        pageinationToken = "https://www.amazon.de" + json.loads(subsequentSoup.find("script").string)['showMoreUrl']
+        token = json.loads(subsequentSoup.find("script",string=re.compile("showMoreUrl")).string)['showMoreUrl']
+        if token is None:
+            print("Unable to read Token. The results of this check might not include all products")
+            return
+        pageinationToken = "https://www.amazon.de" + token
         soup.extend(subsequentSoup)
-        #print("GET: " + str(loopcounter))
-        #print(pageinationToken)
-        #loopcounter = loopcounter + 1 
-        #itemcount = len(soup.findAll("li"))
-        #print(itemcount)
+        
 
     changeditems = []
 
