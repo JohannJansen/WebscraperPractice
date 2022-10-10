@@ -33,62 +33,59 @@ HEADERS = ({
 
 BASE_URL = "https://www.amazon.de/hz/wishlist/ls/7J62CKP25KAM"
 
-def manageProductdata(Data,updateflag):
-
-    page = requests.get(BASE_URL,headers=HEADERS)
-    soup = BeautifulSoup(page.content, features="html.parser")
-    initialTokenJSON = soup.find("script",string=re.compile("showMoreUrl"))
+#function to find the ShowMoreURL for the given Wishlist URL. This function also extends the given soup with the requested HTML
+def findShowMoreURL(url,soup):
+    subsequentPage = requests.get(url,headers=HEADERS)
+    subsequentSoup = BeautifulSoup(subsequentPage.content, features="html.parser")
+    initialTokenJSON = subsequentSoup.find("script",string=re.compile("showMoreUrl"))
     if initialTokenJSON is None:
             print("Unable to read Token. The results of this check dont include any products")
-            return
+            return None
     initialToken = json.loads(initialTokenJSON.string)['showMoreUrl']
-    pageinationToken = "https://www.amazon.de" + initialToken
+    soup.extend(subsequentSoup)
+    return  "https://www.amazon.de" + initialToken
+
+#function builds up a soup of the whole Wishlist through the function findShowMoreURL 
+#and either saves the data into the Data List or compares it to the already existing Data
+def manageProductdata(Data,updateflag):
+    soup = BeautifulSoup()
+    
+    pageinationToken = findShowMoreURL(BASE_URL,soup)
+    if pageinationToken is None:
+        return
     currentIndex = 0
 
     while(pageinationToken != "https://www.amazon.de" and "paginationToken=&itemsLayout" not in pageinationToken):
-        subsequentPage = requests.get(pageinationToken,headers=HEADERS)
-        subsequentSoup = BeautifulSoup(subsequentPage.content,features="html.parser")
-        tokenJSON = subsequentSoup.find("script",string=re.compile("showMoreUrl"))
-        if tokenJSON is None:
-            print("Unable to read Token. The results of this check dont include any products")
+        pageinationToken = findShowMoreURL(pageinationToken,soup)
+        if pageinationToken is None:
             return
-        token = json.loads(tokenJSON.string)['showMoreUrl']
-        
-        pageinationToken = "https://www.amazon.de" + token
-        soup.extend(subsequentSoup)
-        
-
+    
     changeditems = []
-
     for items in soup.find_all("div",id=re.compile("item_.*")):
         itemname = items.find(id=re.compile("itemName.*"))
         used_and_new = items.find(id=re.compile("used-and-new.*"))
-    
-        if itemname is not None:
-            number_used_and_new = int(re.sub('[^0-9]','',used_and_new.text)) if used_and_new is not None else 0
-            text_itemname = itemname.text.strip()
-            itemlink = "https://www.amazon.de" + soup.find("a",title=text_itemname).get("href")
-            if updateflag:
-                if text_itemname != Data[currentIndex][0] or itemlink != Data[currentIndex][2]:
-                    print(text_itemname + " " + itemlink)
-                    print(Data[currentIndex][0] + " " + Data[currentIndex][2])
+        number_used_and_new = int(re.sub('[^0-9]','',used_and_new.text)) if used_and_new is not None else 0
+        text_itemname = itemname.text.strip()
+        itemlink = "https://www.amazon.de" + soup.find("a",title=text_itemname).get("href")
+        
 
-            if updateflag:
-                if number_used_and_new is Data[currentIndex][1]:
-                    currentIndex+=1
-                elif number_used_and_new < Data[currentIndex][1]:
-                    if text_itemname == Data[currentIndex][0] or itemlink == Data[currentIndex][2]:
-                        Data[currentIndex] = (text_itemname,number_used_and_new,itemlink)
-                    currentIndex+=1
-                elif number_used_and_new > Data[currentIndex][1]:
-                    changeditems.append(currentIndex)
-                    Data[currentIndex] = (Data[currentIndex][0],number_used_and_new,Data[currentIndex][2])
-                    currentIndex+=1
-            else:
-                Data.append((text_itemname,number_used_and_new,itemlink))
+        if updateflag:
+            if number_used_and_new is Data[currentIndex][1]:
+                currentIndex+=1
+            elif number_used_and_new < Data[currentIndex][1]:
+                if text_itemname == Data[currentIndex][0] or itemlink == Data[currentIndex][2]:
+                    Data[currentIndex] = (text_itemname,number_used_and_new,itemlink)
+                currentIndex+=1
+            elif number_used_and_new > Data[currentIndex][1]:
+                changeditems.append(currentIndex)
+                Data[currentIndex] = (text_itemname,number_used_and_new,itemlink)
+                currentIndex+=1
+        else:
+            Data.append((text_itemname,number_used_and_new,itemlink))
     print("no changes to the previous List. Time: " + datetime.now().strftime("%m/%d/%Y, %H:%M:%S"))
     notify(changeditems)
 
+#function to notify the given Email account about the change in used_and_new forthe given list of products
 def notify(changeditems):
     if len(changeditems) == 0:
         return
