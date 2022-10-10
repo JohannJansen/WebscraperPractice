@@ -11,6 +11,7 @@ import smtplib
 from email.message import EmailMessage
 from datetime import datetime
 import random
+import sys
 
 ProductData = []
 
@@ -31,7 +32,7 @@ HEADERS = ({
     'User-Agent': random_user_agent
     })
 
-BASE_URL = "https://www.amazon.de/hz/wishlist/ls/7J62CKP25KAM"
+BASE_URL = sys.argv[1]
 
 #function to find the ShowMoreURL for the given Wishlist URL. This function also extends the given soup with the requested HTML
 def findShowMoreURL(url,soup):
