@@ -37,14 +37,18 @@ ITEM_URL = "" #searched for automatically
 def findListURL():
     page = requests.get(BASE_URL,headers=HEADERS)
     soup = BeautifulSoup(page.content, features="html.parser")
-    itemurl = "https://www.amazon.de" + json.loads(soup.find("script",string=re.compile("showMoreUrl")).string)['showMoreUrl']
+    ListJSON = soup.find("script",string=re.compile("showMoreUrl")).string
+    if ListJSON is None:
+        print("List URL wasnt found on first try. Attempting again")
+        return ""
+    itemurl = "https://www.amazon.de" + json.loads(ListJSON)['showMoreUrl']
     return itemurl
 
 
 
 def manageProductdata(Data,updateflag):
 
-    page = requests.get(ITEM_URL,headers=HEADERS)
+    page = requests.get(BASE_URL,headers=HEADERS)
     soup = BeautifulSoup(page.content, features="html.parser")
     initialToken = json.loads(soup.find("script",string=re.compile("showMoreUrl")).string)['showMoreUrl']
     if initialToken is None:
@@ -66,7 +70,7 @@ def manageProductdata(Data,updateflag):
 
     changeditems = []
 
-    for items in soup.find_all("li"):
+    for items in soup.find_all("div",id=re.compile("item_.*")):
         itemname = items.find(id=re.compile("itemName.*"))
         used_and_new = items.find(id=re.compile("used-and-new.*"))
     
@@ -84,7 +88,7 @@ def manageProductdata(Data,updateflag):
                     currentIndex+=1
                 elif number_used_and_new < Data[currentIndex][1]:
                     if text_itemname == Data[currentIndex][0] or itemlink == Data[currentIndex][2]:
-                        Data[currentIndex] = (text_itemname,number_used_and_new,itemlink)
+                        Data[currentIndex] = (Data[currentIndex][0],number_used_and_new,Data[currentIndex][2])
                     currentIndex+=1
                 elif number_used_and_new > Data[currentIndex][1]:
                     changeditems.append(currentIndex)
@@ -117,7 +121,8 @@ def notify(changeditems):
         smtp.sendmail(email_sender,email_reciever,em.as_string())
 
 
-ITEM_URL = findListURL()
+while ITEM_URL == "":
+    ITEM_URL = findListURL()
 manageProductdata(ProductData,False)
 print(ProductData)
 while True:
