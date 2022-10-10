@@ -30,40 +30,30 @@ random_user_agent = random.choice(user_agents)
 HEADERS = ({
     'User-Agent': random_user_agent
     })
+
 BASE_URL = "https://www.amazon.de/hz/wishlist/ls/7J62CKP25KAM"
-ITEM_URL = "" #searched for automatically
-
-
-def findListURL():
-    page = requests.get(BASE_URL,headers=HEADERS)
-    soup = BeautifulSoup(page.content, features="html.parser")
-    ListJSON = soup.find("script",string=re.compile("showMoreUrl")).string
-    if ListJSON is None:
-        print("List URL wasnt found on first try. Attempting again")
-        return ""
-    itemurl = "https://www.amazon.de" + json.loads(ListJSON)['showMoreUrl']
-    return itemurl
-
-
 
 def manageProductdata(Data,updateflag):
 
     page = requests.get(BASE_URL,headers=HEADERS)
     soup = BeautifulSoup(page.content, features="html.parser")
-    initialToken = json.loads(soup.find("script",string=re.compile("showMoreUrl")).string)['showMoreUrl']
-    if initialToken is None:
+    initialTokenJSON = soup.find("script",string=re.compile("showMoreUrl"))
+    if initialTokenJSON is None:
             print("Unable to read Token. The results of this check dont include any products")
             return
+    initialToken = json.loads(initialTokenJSON.string)['showMoreUrl']
     pageinationToken = "https://www.amazon.de" + initialToken
     currentIndex = 0
 
     while(pageinationToken != "https://www.amazon.de" and "paginationToken=&itemsLayout" not in pageinationToken):
         subsequentPage = requests.get(pageinationToken,headers=HEADERS)
         subsequentSoup = BeautifulSoup(subsequentPage.content,features="html.parser")
-        token = json.loads(subsequentSoup.find("script",string=re.compile("showMoreUrl")).string)['showMoreUrl']
-        if token is None:
-            print("Unable to read Token. The results of this check might not include all products")
+        tokenJSON = subsequentSoup.find("script",string=re.compile("showMoreUrl"))
+        if tokenJSON is None:
+            print("Unable to read Token. The results of this check dont include any products")
             return
+        token = json.loads(tokenJSON.string)['showMoreUrl']
+        
         pageinationToken = "https://www.amazon.de" + token
         soup.extend(subsequentSoup)
         
@@ -88,7 +78,7 @@ def manageProductdata(Data,updateflag):
                     currentIndex+=1
                 elif number_used_and_new < Data[currentIndex][1]:
                     if text_itemname == Data[currentIndex][0] or itemlink == Data[currentIndex][2]:
-                        Data[currentIndex] = (Data[currentIndex][0],number_used_and_new,Data[currentIndex][2])
+                        Data[currentIndex] = (text_itemname,number_used_and_new,itemlink)
                     currentIndex+=1
                 elif number_used_and_new > Data[currentIndex][1]:
                     changeditems.append(currentIndex)
@@ -121,10 +111,10 @@ def notify(changeditems):
         smtp.sendmail(email_sender,email_reciever,em.as_string())
 
 
-while ITEM_URL == "":
-    ITEM_URL = findListURL()
+
 manageProductdata(ProductData,False)
 print(ProductData)
+sleep(30)
 while True:
     manageProductdata(ProductData,True)
     sleep(30)
